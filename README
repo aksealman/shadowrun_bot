@@ -1,0 +1,5 @@
+Only tested on linux system, should work on any system with python 3.5 or higher with the discord module installed.  
+
+To run:
+
+./start.py &
