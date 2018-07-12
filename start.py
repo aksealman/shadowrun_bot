@@ -105,7 +105,7 @@ async def exit():
 @bot.command()
 #Author/Source
 async def info():
-    await bot.say("Shadowrun Bot version {0} created by aksealboy source at :<github here>".format(version_info))    
+    await bot.say("Shadowrun Bot version {0} created by aksealboy source at: https://github.com/aksealman/shadowrun_bot".format(version_info))    
 
 #TODO help <cmd>
 @bot.command()
