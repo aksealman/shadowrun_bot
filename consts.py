@@ -6,6 +6,7 @@ config_path=os.getcwd()+"/"+config_fname
 command_prefix_key="command_prefix"
 channel_name_key="channel_name"
 bot_token_key="bot_token"
+author_id="author_id"
 
 #TODO make this varible depending on cmd prefix.
 MTOD="Hello I am the shadowrun discord bot type **!help** for usage information, type **!info** for version information"

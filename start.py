@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 #TODO user logging
 #TODO start.py should only contain the bot configuration and launch logic. Need to seperate command logic
+#TODO need to figure out case_insensitive, api call does not work as expected.
 import discord
 from discord.ext import commands
 import sys
@@ -14,11 +15,14 @@ config_values=config_parse()
 fchan=None
 version_info=0.1
 #cmd list roll,info, exit, help 
+#TODO change to Context.prefix instead of config_values
 CMD_LIST={
           "help": "Usage: {0}help Description: Displays this text".format(config_values[consts.command_prefix_key]),
           "info": "Usage: {0}info Description: Displays author, version info and source code links".format(config_values[consts.command_prefix_key]),
           "exit": "Usage: {0}exit Description: Exits the bot, can only be ran by owner of the bot".format(config_values[consts.command_prefix_key]),
-          "roll": "Usage: {0}roll X <Y> Description: Rolls X dice, and counts all \"hits\" aka rolls of 5 or 6 on the dice. If edge <Y> parmater is provided then will re-roll all 6's and continue to cumulate hits.".format(config_values[consts.command_prefix_key])
+          "roll": "Usage: {0}roll X <Y> Description: Rolls X dice, and counts all \"hits\" aka rolls of 5 or 6 on the dice. If edge <Y> parmater is provided then will re-roll all 6's and continue to cumulate hits.".format(config_values[consts.command_prefix_key]),
+          "bugreport": "Usage: {0}bugreport <Description of the problem> Description: Logs a bug report on the bot host server intended to report issues/suggestions with the bot".format(config_values[consts.command_prefix_key]),
+          "todo": "Usage: {0}todo Description: Explains the next development steps for the bot".format(config_values[consts.command_prefix_key])
          }
 
 
@@ -46,8 +50,9 @@ def rollin(dice_num, curr_hits, compute_edge):
     dice_str+=rollin(edge_ctr, hit_ctr, compute_edge)
     return dice_str
 #Could also just manage permissions for the bot, on the discord channel but I think this is cooler
-
 bot = commands.Bot(command_prefix=config_values[consts.command_prefix_key])
+#This does not work
+#bot.case_insensitive=True
 print(str(discord.__version__))
 
 #TODO look into refining the random seed.
@@ -75,6 +80,7 @@ async def on_command_error(error, ctx):
     if isinstance(error, type(commands.errors.CommandNotFound())):
         await bot.send_message(fchan, "Invalid Command, please check **{0}help** for list of valid commands".format(config_values[consts.command_prefix_key]))
     elif isinstance(error, type(commands.errors.CommandInvokeError(discord.errors.HTTPException))):
+        print(str(error))
         await bot.send_message(fchan,"Likely roll overflow detected, please try again with lower number")
         #TODO this is far more accurate, probally need a function that just handles type of error
         #if type(error.original) == type(discord.errors.HTTPException):
@@ -96,16 +102,22 @@ async def roll(ctx, num_dice : int, edge=None):
     edge_compute=edge != None
     await bot.say(rollin(num_dice, 0, edge_compute))
 
-#TODO is authoer check
-@bot.command()
-async def exit():
-    print("Exiting bot")
-    sys.exit()
+@bot.command(pass_context=True)
+async def exit(ctx):
+    if not consts.author_id in config_values:
+        await bot.say("Cannot run this command without defining author_id in config file")
+        return
+    if str(ctx.message.author.id) == str(config_values[consts.author_id]):
+        await bot.say("goodbye world!") 
+        print("Exiting bot")
+        sys.exit()
+    else:
+        await bot.say("You are not authorized to use this command")
 
 @bot.command()
 #Author/Source
 async def info():
-    await bot.say("Shadowrun Bot version {0} created by aksealboy source at: https://github.com/aksealman/shadowrun_bot".format(version_info))    
+    await bot.say("Shadowrun Bot version {0} created by aksealboy source at https://github.com/aksealman/shadowrun_bot".format(version_info))    
 
 #TODO help <cmd>
 @bot.command()
@@ -115,8 +127,22 @@ async def help():
         embed.add_field(name=key, value=c_value, inline=True)
     await bot.say(embed=embed)
 
-#TODO suggest command
 
+@bot.command(pass_context=True) 
+async def bugreport(ctx, *args):
+    #User: Description
+    test_str=str(ctx.message.author)+": "
+    for x in args:
+        test_str+=x+" "
+    test_str+="\n"
+    with open("bugreports", "a") as myfile:
+        myfile.write(test_str)
+    await bot.say("Bugreport has been logged")
+
+@bot.command()
+async def todo():
+    await bot.say("TODO: Look into getting bot running on heroku server instead of local VM")
+    
 def main():
     #TODO if we want to keep exit, without huge amounts of stacktrace puke we need
     #more refined control so cannot use bot.run waiting for SystemExit Exception
